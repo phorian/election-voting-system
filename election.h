@@ -183,3 +183,77 @@ void saveElectionDataInDB(){
             fclose(fp);
             printf("Data Stored Successfully :)");
 }
+
+/****************************************
+ * Load election data from local database
+ * which Includes
+ * Banned database
+ * candidate database
+ * election info database
+*****************************************/
+
+void getElectionData(){
+    FILE *f1, *f2, *f3;
+    f1 = fopen("Electiondata.txt", "r");
+    if(f1 == NULL)
+        printf("No data");
+    fscanf(f1, "%d", &currentValidId.year);
+    fseek(f1, 2,SEEK_CUR);
+    fscanf(f1,"%s", currentValidId.branch);
+    fseek(f1, 2,SEEK_CUR);
+    fscanf(f1,"%d", currentValidId.totalVoters);
+    fseek(f1, 2,SEEK_CUR);
+    fscanf(f1, "%d", numOfCandidates);
+    fclose(f1);
+
+    //load candidates info and voters votes
+    for(int i = 0; i <currentValidId.totalVoters; i++)
+    {
+        votersVotes[i] = '0';
+    }
+    for (int i =1; i<numOfCandidates; i++)
+    {
+        int location;
+        char filename[20];
+        sprintf(filename,"candidate%d.txt", i);
+        f2 = fopen(filename, "r+");
+        candidateArray[i-1].cid=i;
+        fscanf(f2,"%d", &candidateArray[i-1].votes);
+        fscanf(f2,"%s", &candidateArray[i-1].cname);
+        while (!feof(f2))
+        {
+            fscanf(f2,"%d", &location);
+            votersVotes[location-1] = i+48;
+        }
+        fclose(f2);
+    }
+
+    //get banned Id
+    int location;
+    f3 = fopen("banned.txt", "r+");
+    while(!feof(f3)){
+        fscanf(f3, "%d", location);
+        votersVotes[location-1]= '$';
+    }
+    fclose(f3);
+}
+
+/************************************
+ * Function to calculate votes and 
+ * get winner
+************************************/
+
+int getWinner(){
+    int maxVote = -1;
+    int winnerCid;
+    for (int i=0; i< numOfCandidates; i++){
+        if(candidateArray[i].votes > maxVote){
+            winnerCid = candidateArray[i].cid;
+            maxVote = candidateArray[i].votes;
+        }
+        else if(candidateArray[i]. votes == maxVote){
+            return -1;
+        }
+    }
+    return winnerCid;
+}
