@@ -228,7 +228,7 @@ void getElectionData(){
         fclose(f2);
     }
 
-    //get banned Id
+    //load banned Id
     int location;
     f3 = fopen("banned.txt", "r+");
     while(!feof(f3)){
@@ -256,4 +256,195 @@ int getWinner(){
         }
     }
     return winnerCid;
+}
+
+void adminPanel(){
+    while (1)
+    {
+        if(authAdmin()!=0){
+            printf("\n Invalid login details");
+            break;
+        }
+
+        printf("\n\n LOGGED IN SUCCESSFULLY");
+        printf("\n\t\t Press Enter");
+        getch();
+
+        while (1)
+        {
+            char inputID[15];
+            char input;
+            char banInput;
+            int winCid;
+            int sumVoted=0;
+
+            printf("\n1.New Election");
+            printf("\n2.Continue Previous Election");
+            printf("\n3.Ban User ID");
+            printf("\n4.Result");
+            printf("\n5.Logout");
+            printf("\nOption: ");
+            scanf("%c", &input);
+
+        switch (input)
+        {
+        case '1':
+            initiateNewElection();
+            saveElectionDataInDB();
+            candidateDB();
+            break;
+
+        case '2':
+            getElectionData();
+            break;
+
+        case '3':
+            printf("Do you want to ban a Voter ID? \n Press 1 to continue or press 0 to go back");
+            scanf("%c", &banInput);
+            if(banInput=='1'){
+                banID();
+            }
+            break;
+
+        case '4':
+            winCid =getWinner();
+            if(winCid != -1){
+                printf("\nWinner is %s with %d votes\n",candidateArray[winCid-1].cname, candidateArray[winCid-1].votes);
+            }
+            else{
+                printf("\nITS A TIE");
+            }
+            printf("\nFULL RESULT");
+            for(int i=0; i<numOfCandidates;i++){
+                sumVoted+=candidateArray[i].votes;
+                printf("%d.  %s  -> %d votes\n", candidateArray[i].cid, candidateArray[i].cname, candidateArray[i].votes);
+            }
+            printf("\nVoting Percewntage: %d %%\n\n",(sumVoted*100)/currentValidId.totalVoters);
+            break;
+        case '5':
+            return;
+        default:
+            printf("Invalid Option");
+                     getch();
+             }
+        }
+        
+    }
+    
+};
+
+
+/*************************************************************************
+ * This function checks the voter's ID for validity
+ * It uses the getyear,getcallno,getbranchcode function to confirm this
+*************************************************************************/
+int isvalid(char voterID[25])
+{
+    if(strlen(voterID)!=15)
+        return 0;
+    
+    int inputedYear = getYear(voterID);
+    int inputedCallNo = getCallNo(voterID);
+
+    if(inputedYear != currentValidId.year || checkBranchCode(voterID)!=1 || inputedCallNo > currentValidId.totalVoters)
+        return 0;
+
+    return 1;
+}
+
+/****************************************************************
+ * This function checks for voters that already cast their vote
+****************************************************************/
+
+int isVoted(char voterID[25]){
+    int loc = getCallNo(voterID);
+    if(votersVotes[loc -1]=='0')
+        return 0;
+    else
+        return 1;
+}
+
+/********************************************************
+ * This function checks if a voter is banned from voting
+*********************************************************/
+int isBanned(char voterID[25])
+{
+    int loc = getCallNo(voterID);
+    if(votersVotes[loc - 1]=='$')
+        return 1;
+    else 
+        return 0;
+}
+
+/*******************************
+ * This function saves the vote
+*******************************/
+
+void saveVote(char voterID[25], char voteInput)
+{
+    char filename[20];
+    sprintf(filename,"candidate%d.txt",voteInput-48);
+    FILE *fp = fopen(filename, "r+");
+    int loc = getCallNo(voterID);
+    votersVotes[loc - 1]= voteInput;
+    candidateArray[voteInput-49].votes++;
+    fseek(fp, 0, SEEK_SET);
+    fprintf(fp, "%d\n", candidateArray[voteInput-49].votes);
+    fseek(fp, 0, SEEK_END);
+    fprintf(fp, "\n%d", loc);
+    fclose(fp);
+}
+
+
+void voterSec(){
+    char voterID[25];
+    char voteInput;
+
+    while(1)
+    {
+        printf("\n\n\t\t Press 0 to exit");
+
+        printf("\nEnter Voter ID: ");
+        scanf("%s", voterID);
+
+        if(strcmp(voterID, "0")==0)
+            return;
+        if(isvalid(voterID)!=1)
+        {
+            printf("\n Invalid Voter ID(PRESS ENTER)");
+            getch();
+            continue;
+        }
+        if(isBanned(voterID) != 0)
+        {
+            printf("\nThis Voter ID is currently banned... \nContact Admin....(Press Enter to continue)");
+            getch();
+            continue;
+        }
+        if(isVoted(voterID)!=0)
+        {
+            printf("\n This voter ID already has a registered vote. \n COntact Admin if this is a mistake");
+            getch();
+            continue;
+        }
+
+        printf("\n\n Candidates for election: ");
+                for(int i = 0; i < numOfCandidates; i++){
+                    printf("\n %d. %s", i+1, candidateArray[i].cname);
+                }
+            
+            printf("\n\n Your Vote(Enter Number): ");
+            voteInput=getch();
+            printf("*");
+            if(voteInput-48 < 1 || voteInput-48 > numOfCandidates)
+            {
+                printf("\nInvalid vote.\nTry again...");
+                getch();
+                continue;
+            }
+
+            saveVote(voterID,voteInput);
+            printf("\n\nThanks for voting...(Press Enter)");
+            getch();
+    }
 }
