@@ -3,6 +3,8 @@
 #include <conio.h>
 #include <string.h>
 
+#define MAX_LIMIT 50
+
 struct currentValidId{
     int year;
     char branch[6];
@@ -11,7 +13,7 @@ struct currentValidId{
 
 typedef struct candidate{
     int cid;            //candidate ID
-    char cname[30];    //candidate name
+    char cname[MAX_LIMIT];    //candidate name
     int votes;        //candidate votes
 }CANDIDATE;
 
@@ -21,14 +23,14 @@ int numOfCandidates;
 char votersVotes[500];
 
 
-//Get the voting year from voterID; votierID: 2022INEC0000010   year:2022
+//Get the voting year from voterID; voterID: 2022INEC0000010   year:2022
 int getYear(char voterID[25])
 {
     int year = 0;
     char tmp;
     for(int i =0; i<4; i++){
         tmp = voterID[i];
-        year = (year*0)+(tmp-48);
+        year = (year*10)+(tmp-48);
     }
     return year;
 }
@@ -39,7 +41,7 @@ int getCallNo(char voterID[25])
     char tmp;
     for(int i = 8; i<15; i++){
         tmp = voterID[i];
-        callNo = (callNo*0)+(tmp-48);
+        callNo = (callNo*10)+(tmp-48);
     }
     return callNo;
 }
@@ -54,7 +56,7 @@ int checkBranchCode(char voterID[25])
     branchCode[5]= '\0';
     if(strcmp(branchCode, currentValidId.branch) ==0)
     return 1;
-    else 
+    else
     return 0 ;
 }
 
@@ -66,8 +68,8 @@ int authAdmin(){
     char username[15];
     char pword[15];
 
-    printf("\nEnter Username: ");
-    scanf("%c", username);
+    printf("\nEnter Username:");
+    scanf("%s", username);
     if((strcmp(username, "Admin"))!=0)
         return 0;
     else
@@ -140,9 +142,9 @@ void initiateNewElection(){
     printf("\nEnter Election Year: ");
     scanf("%d", &currentValidId.year);
     printf("Enter Branch code: ");
-    scanf("%c", currentValidId.branch);
+    scanf("%s", currentValidId.branch);
     printf("Enter Total Voters registered: ");
-    printf("%d",&currentValidId.totalVoters);
+    scanf("%d", &currentValidId.totalVoters);
     printf("Enter number of candidates: ");
     scanf("%d", &numOfCandidates);
 
@@ -153,8 +155,10 @@ void initiateNewElection(){
     for (int i = 0; i < numOfCandidates; i++)
     {
         candidateArray[i].cid = i+1;
-        printf("Enter name of candidate %d: ", i+1);
-        scanf(" %s", candidateArray[i].cname);
+        printf("Enter name of candidate %d:  ", i+1);
+        scanf(" %[^\n]", candidateArray[i].cname );
+        //fgets(candidateArray[i].cname, MAX_LIMIT, stdin);
+        //stdin;
         candidateArray[i].votes= 0;
     }
     return;
@@ -174,7 +178,7 @@ void saveElectionDataInDB(){
             return;
         }
         fprintf
-            (   fp,"%d\t\t | %s\t\t  | %d\t\t | %d\t\t", 
+            (   fp,"%d\t\t | %s\t\t  | %d\t\t | %d\t\t",
                 currentValidId.year,
                 currentValidId.branch,
                 currentValidId.totalVoters,
@@ -194,16 +198,16 @@ void saveElectionDataInDB(){
 
 void getElectionData(){
     FILE *f1, *f2, *f3;
-    f1 = fopen("Electiondata.txt", "r");
+    f1 = fopen("Electiondata.txt", "r+");
     if(f1 == NULL)
         printf("No data");
     fscanf(f1, "%d", &currentValidId.year);
     fseek(f1, 2,SEEK_CUR);
     fscanf(f1,"%s", currentValidId.branch);
     fseek(f1, 2,SEEK_CUR);
-    fscanf(f1,"%d", currentValidId.totalVoters);
+    fscanf(f1,"%d", &currentValidId.totalVoters);
     fseek(f1, 2,SEEK_CUR);
-    fscanf(f1, "%d", numOfCandidates);
+    fscanf(f1, "%d", &numOfCandidates);
     fclose(f1);
 
     //load candidates info and voters votes
@@ -219,7 +223,7 @@ void getElectionData(){
         f2 = fopen(filename, "r+");
         candidateArray[i-1].cid=i;
         fscanf(f2,"%d", &candidateArray[i-1].votes);
-        fscanf(f2,"%s", &candidateArray[i-1].cname);
+        fscanf(f2,"%s", candidateArray[i-1].cname);
         while (!feof(f2))
         {
             fscanf(f2,"%d", &location);
@@ -232,14 +236,14 @@ void getElectionData(){
     int location;
     f3 = fopen("banned.txt", "r+");
     while(!feof(f3)){
-        fscanf(f3, "%d", location);
+        fscanf(f3, "%d", &location);
         votersVotes[location-1]= '$';
     }
     fclose(f3);
 }
 
 /************************************
- * Function to calculate votes and 
+ * Function to calculate votes and
  * get winner
 ************************************/
 
@@ -261,7 +265,7 @@ int getWinner(){
 void adminPanel(){
     while (1)
     {
-        if(authAdmin()!=0){
+        if(authAdmin()!=1){
             printf("\n Invalid login details");
             break;
         }
@@ -272,8 +276,8 @@ void adminPanel(){
 
         while (1)
         {
-            char inputID[15];
-            char input;
+            //char inputID[15];
+            int input;
             char banInput;
             int winCid;
             int sumVoted=0;
@@ -284,21 +288,21 @@ void adminPanel(){
             printf("\n4.Result");
             printf("\n5.Logout");
             printf("\nOption: ");
-            scanf("%c", &input);
+            scanf("%d", &input);
 
         switch (input)
         {
-        case '1':
+        case 1:
             initiateNewElection();
             saveElectionDataInDB();
             candidateDB();
             break;
 
-        case '2':
+        case 2:
             getElectionData();
             break;
 
-        case '3':
+        case 3:
             printf("Do you want to ban a Voter ID? \n Press 1 to continue or press 0 to go back");
             scanf("%c", &banInput);
             if(banInput=='1'){
@@ -306,7 +310,7 @@ void adminPanel(){
             }
             break;
 
-        case '4':
+        case 4:
             winCid =getWinner();
             if(winCid != -1){
                 printf("\nWinner is %s with %d votes\n",candidateArray[winCid-1].cname, candidateArray[winCid-1].votes);
@@ -317,20 +321,20 @@ void adminPanel(){
             printf("\nFULL RESULT");
             for(int i=0; i<numOfCandidates;i++){
                 sumVoted+=candidateArray[i].votes;
-                printf("%d.  %s  -> %d votes\n", candidateArray[i].cid, candidateArray[i].cname, candidateArray[i].votes);
+                printf("\n%d.  %s  -> %d votes\n", candidateArray[i].cid, candidateArray[i].cname, candidateArray[i].votes);
             }
-            printf("\nVoting Percewntage: %d %%\n\n",(sumVoted*100)/currentValidId.totalVoters);
+            printf("\nVoting Percentage: %d %%\n\n",(sumVoted*100)/currentValidId.totalVoters);
             break;
-        case '5':
+        case 5:
             return;
         default:
             printf("Invalid Option");
                      getch();
              }
         }
-        
+
     }
-    
+
 };
 
 
@@ -342,13 +346,14 @@ int isvalid(char voterID[25])
 {
     if(strlen(voterID)!=15)
         return 0;
-    
+
     int inputedYear = getYear(voterID);
     int inputedCallNo = getCallNo(voterID);
 
-    if(inputedYear != currentValidId.year || checkBranchCode(voterID)!=1 || inputedCallNo > currentValidId.totalVoters)
+    if(inputedYear != currentValidId.year || checkBranchCode(voterID)!=1 || inputedCallNo > currentValidId.totalVoters){
         return 0;
-
+    }
+        else
     return 1;
 }
 
@@ -372,7 +377,7 @@ int isBanned(char voterID[25])
     int loc = getCallNo(voterID);
     if(votersVotes[loc - 1]=='$')
         return 1;
-    else 
+    else
         return 0;
 }
 
@@ -432,7 +437,7 @@ void voterSec(){
                 for(int i = 0; i < numOfCandidates; i++){
                     printf("\n %d. %s", i+1, candidateArray[i].cname);
                 }
-            
+
             printf("\n\n Your Vote(Enter Number): ");
             voteInput=getch();
             printf("*");
